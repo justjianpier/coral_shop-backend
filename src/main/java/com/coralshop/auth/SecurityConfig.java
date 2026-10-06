@@ -16,9 +16,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.GET, "/api/health", "/api/auth/csrf").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/health", "/api/auth/csrf",
+                        "/api/products", "/api/products/*", "/api/categories", "/api/brands").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/me").authenticated()
+                .requestMatchers("/api/admin/**", "/api/users/**", "/api/orders/**", "/api/stats/**",
+                        "/api/products/**", "/api/categories/**", "/api/brands/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
         );
 

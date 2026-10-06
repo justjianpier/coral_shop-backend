@@ -23,18 +23,19 @@ public class CatalogController {
                    (SELECT image_url FROM product_images i WHERE i.product_id = p.id
                     ORDER BY i.is_primary DESC, i.sort_order, i.id LIMIT 1) AS image_url,
                    COALESCE((SELECT SUM(v.stock) FROM product_variants v
-                             WHERE v.product_id = p.id AND v.is_active), 0) AS total_stock
+                             WHERE v.product_id = p.id AND v.is_active), 0) AS total_stock,
+                   p.is_active
             FROM products p
             JOIN categories c ON c.id = p.category_id
             LEFT JOIN brands b ON b.id = p.brand_id
-            WHERE p.is_active AND c.is_active
+            WHERE 1 = 1
             """;
 
     private static final RowMapper<ProductView> PRODUCT_MAPPER = (rs, row) ->
             new ProductView(rs.getLong("id"), rs.getString("name"), rs.getString("description"),
                     rs.getBigDecimal("base_price"), rs.getLong("category_id"),
                     rs.getString("category_name"), rs.getString("brand_name"),
-                    rs.getString("image_url"), rs.getInt("total_stock"), true, List.of());
+                    rs.getString("image_url"), rs.getInt("total_stock"), rs.getBoolean("is_active"), List.of());
 
     private final JdbcTemplate jdbc;
 
@@ -44,12 +45,18 @@ public class CatalogController {
 
     @GetMapping("/products")
     public List<ProductView> products() {
+        return jdbc.query(PRODUCTS_SQL + " AND p.is_active AND c.is_active ORDER BY p.id DESC", PRODUCT_MAPPER);
+    }
+
+    @GetMapping("/admin/products")
+    public List<ProductView> adminProducts() {
         return jdbc.query(PRODUCTS_SQL + " ORDER BY p.id DESC", PRODUCT_MAPPER);
     }
 
     @GetMapping("/products/{id}")
     public ProductView product(@PathVariable Long id) {
-        List<ProductView> matches = jdbc.query(PRODUCTS_SQL + " AND p.id = ?", PRODUCT_MAPPER, id);
+        List<ProductView> matches = jdbc.query(PRODUCTS_SQL + " AND p.is_active AND c.is_active AND p.id = ?",
+                PRODUCT_MAPPER, id);
         if (matches.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found");
         }
@@ -64,7 +71,7 @@ public class CatalogController {
                 """, (rs, row) -> mapVariant(rs), id);
         return new ProductView(product.id(), product.name(), product.description(), product.basePrice(),
                 product.categoryId(), product.categoryName(), product.brandName(), product.imageUrl(),
-                product.totalStock(), true, variants);
+                product.totalStock(), product.isActive(), variants);
     }
 
     @GetMapping("/categories")

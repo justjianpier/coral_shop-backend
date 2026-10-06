@@ -1,6 +1,7 @@
 package com.coralshop.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.coralshop.user.UserRepository;
 import java.util.Map;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +15,8 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper,
+                                                    UserRepository userRepository) throws Exception {
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, "/api/health", "/api/auth/csrf",
                         "/api/products", "/api/products/*", "/api/categories", "/api/brands").permitAll()
@@ -30,7 +32,8 @@ public class SecurityConfig {
                 .usernameParameter("email")
                 .successHandler((request, response, authentication) -> {
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                    objectMapper.writeValue(response.getWriter(), AuthenticatedUserResponse.from(authentication));
+                    objectMapper.writeValue(response.getWriter(),
+                            AuthenticatedUserResponse.from(authentication, userRepository));
                 })
                 .failureHandler((request, response, exception) -> {
                     response.setStatus(HttpStatus.UNAUTHORIZED.value());

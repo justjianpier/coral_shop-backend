@@ -1,5 +1,6 @@
 package com.coralshop.auth;
 
+import com.coralshop.user.UserRepository;
 import java.util.Map;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -18,9 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final RegistrationService registrationService;
+    private final UserRepository userRepository;
 
-    public AuthController(RegistrationService registrationService) {
+    public AuthController(RegistrationService registrationService, UserRepository userRepository) {
         this.registrationService = registrationService;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/register")
@@ -37,6 +40,6 @@ public class AuthController {
 
     @GetMapping("/me")
     public AuthenticatedUserResponse me(Authentication authentication) {
-        return AuthenticatedUserResponse.from(authentication);
+        return AuthenticatedUserResponse.from(authentication, userRepository);
     }
 }
